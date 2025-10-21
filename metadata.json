@@ -1,0 +1,7 @@
+{
+  "name": "Gemini Chatbot Suite",
+  "description": "A comprehensive suite to build, deploy, and manage custom AI chatbots and voice agents powered by the Gemini API. Features include knowledge base creation, voice agent configuration, and a dashboard for monitoring.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
