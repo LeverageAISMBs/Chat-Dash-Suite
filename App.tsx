@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { View, KnowledgeBase, Chatbot, VoiceAgent } from './types';
 import { SideNav } from './components/SideNav';
@@ -32,16 +31,37 @@ const App: React.FC = () => {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
+  // Knowledge Base CRUD
   const addKnowledgeBase = (kb: Omit<KnowledgeBase, 'id' | 'createdAt'>) => {
     const newKb: KnowledgeBase = { ...kb, id: `kb${Date.now()}`, createdAt: new Date().toISOString() };
     setKnowledgeBases(prev => [...prev, newKb]);
   };
   
+  const updateKnowledgeBase = (updatedKb: KnowledgeBase) => {
+    setKnowledgeBases(prev => prev.map(kb => kb.id === updatedKb.id ? updatedKb : kb));
+  }
+
+  const deleteKnowledgeBase = (id: string) => {
+    setKnowledgeBases(prev => prev.filter(kb => kb.id !== id));
+    // When a KB is deleted, update any chatbots using it
+    setChatbots(prev => prev.map(bot => bot.knowledgeBaseId === id ? { ...bot, knowledgeBaseId: null } : bot));
+  }
+
+  // Chatbot CRUD
   const addChatbot = (bot: Omit<Chatbot, 'id' | 'createdAt' | 'usage'>) => {
     const newBot: Chatbot = { ...bot, id: `cb${Date.now()}`, createdAt: new Date().toISOString(), usage: 0 };
     setChatbots(prev => [...prev, newBot]);
   }
+  
+  const updateChatbot = (updatedBot: Chatbot) => {
+    setChatbots(prev => prev.map(bot => bot.id === updatedBot.id ? updatedBot : bot));
+  }
+  
+  const deleteChatbot = (id: string) => {
+    setChatbots(prev => prev.filter(bot => bot.id !== id));
+  }
 
+  // Voice Agent CRUD
   const addVoiceAgent = (agent: Omit<VoiceAgent, 'id' | 'createdAt'>) => {
       const newAgent: VoiceAgent = { ...agent, id: `va${Date.now()}`, createdAt: new Date().toISOString() };
       setVoiceAgents(prev => [...prev, newAgent]);
@@ -52,9 +72,20 @@ const App: React.FC = () => {
       case View.Dashboard:
         return <DashboardView chatbots={chatbots} knowledgeBases={knowledgeBases} voiceAgents={voiceAgents} setCurrentView={setCurrentView} />;
       case View.KnowledgeBases:
-        return <KnowledgeBaseView knowledgeBases={knowledgeBases} addKnowledgeBase={addKnowledgeBase} />;
+        return <KnowledgeBaseView 
+                  knowledgeBases={knowledgeBases} 
+                  addKnowledgeBase={addKnowledgeBase}
+                  updateKnowledgeBase={updateKnowledgeBase}
+                  deleteKnowledgeBase={deleteKnowledgeBase}
+                />;
       case View.Chatbots:
-        return <ChatbotsView chatbots={chatbots} knowledgeBases={knowledgeBases} addChatbot={addChatbot} />;
+        return <ChatbotsView 
+                  chatbots={chatbots} 
+                  knowledgeBases={knowledgeBases} 
+                  addChatbot={addChatbot}
+                  updateChatbot={updateChatbot}
+                  deleteChatbot={deleteChatbot}
+                />;
       case View.VoiceAgents:
         return <VoiceAgentView voiceAgents={voiceAgents} addVoiceAgent={addVoiceAgent} />;
       default:

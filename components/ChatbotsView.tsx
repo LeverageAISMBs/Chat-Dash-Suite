@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Chatbot, KnowledgeBase, ChatMessage } from '../types';
 import { Modal } from './Modal';
 import { getResponse } from '../services/geminiService';
@@ -9,14 +8,37 @@ interface ChatbotsViewProps {
   chatbots: Chatbot[];
   knowledgeBases: KnowledgeBase[];
   addChatbot: (bot: Omit<Chatbot, 'id' | 'createdAt' | 'usage'>) => void;
+  updateChatbot: (bot: Chatbot) => void;
+  deleteChatbot: (id: string) => void;
 }
 
-const NewChatbotForm: React.FC<{ onSave: (bot: Omit<Chatbot, 'id' | 'createdAt' | 'usage'>) => void; onClose: () => void; knowledgeBases: KnowledgeBase[] }> = ({ onSave, onClose, knowledgeBases }) => {
+const ChatbotForm: React.FC<{ 
+  onSave: (data: Omit<Chatbot, 'id' | 'createdAt' | 'usage'>) => void; 
+  onClose: () => void; 
+  knowledgeBases: KnowledgeBase[];
+  initialData?: Chatbot | null;
+}> = ({ onSave, onClose, knowledgeBases, initialData }) => {
   const [name, setName] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [knowledgeBaseId, setKnowledgeBaseId] = useState<string | null>(null);
   const [useThinkingMode, setUseThinkingMode] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name);
+      setSystemPrompt(initialData.systemPrompt);
+      setKnowledgeBaseId(initialData.knowledgeBaseId);
+      setUseThinkingMode(initialData.useThinkingMode);
+    } else {
+      setName('');
+      setSystemPrompt('');
+      setKnowledgeBaseId(null);
+      setUseThinkingMode(false);
+    }
+    setError('');
+  }, [initialData]);
+
 
   const handleSave = () => {
     if (!name.trim() || !systemPrompt.trim()) {
@@ -30,7 +52,7 @@ const NewChatbotForm: React.FC<{ onSave: (bot: Omit<Chatbot, 'id' | 'createdAt' 
     <div className="space-y-4 text-white">
       <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Chatbot Name" className="w-full bg-gray-700 p-2 rounded" />
       <textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} placeholder="System Prompt (e.g., You are a helpful assistant.)" rows={4} className="w-full bg-gray-700 p-2 rounded"/>
-      <select onChange={e => setKnowledgeBaseId(e.target.value === 'none' ? null : e.target.value)} defaultValue="none" className="w-full bg-gray-700 p-2 rounded">
+      <select value={knowledgeBaseId || 'none'} onChange={e => setKnowledgeBaseId(e.target.value === 'none' ? null : e.target.value)} className="w-full bg-gray-700 p-2 rounded">
         <option value="none">No Knowledge Base</option>
         {knowledgeBases.map(kb => <option key={kb.id} value={kb.id}>{kb.name}</option>)}
       </select>
@@ -112,7 +134,7 @@ const EmbedCodeModal: React.FC<{ bot: Chatbot, onClose: () => void }> = ({ bot, 
 
     return (
         <div className="space-y-4">
-            <p className="text-gray-300">Copy this snippet and paste it into the `<body>` of your website to embed this chatbot.</p>
+            <p className="text-gray-300">Copy this snippet and paste it into the \`<body>\` of your website to embed this chatbot.</p>
             <pre className="bg-gray-900 p-4 rounded-lg text-green-300 text-sm overflow-x-auto">
                 <code>{embedCode}</code>
             </pre>
@@ -123,21 +145,47 @@ const EmbedCodeModal: React.FC<{ bot: Chatbot, onClose: () => void }> = ({ bot, 
     )
 }
 
-export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ chatbots, knowledgeBases, addChatbot }) => {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ chatbots, knowledgeBases, addChatbot, updateChatbot, deleteChatbot }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBot, setEditingBot] = useState<Chatbot | null>(null);
   const [activeChatbot, setActiveChatbot] = useState<Chatbot | null>(null);
   const [embedBot, setEmbedBot] = useState<Chatbot | null>(null);
 
-  const handleSave = (bot: Omit<Chatbot, 'id' | 'createdAt' | 'usage'>) => {
-    addChatbot(bot);
-    setIsCreateModalOpen(false);
+  const handleSave = (data: Omit<Chatbot, 'id' | 'createdAt' | 'usage'>) => {
+    if (editingBot) {
+      updateChatbot({ ...editingBot, ...data });
+    } else {
+      addChatbot(data);
+    }
+    closeModal();
   };
+  
+  const openCreateModal = () => {
+    setEditingBot(null);
+    setIsModalOpen(true);
+  }
+
+  const openEditModal = (bot: Chatbot) => {
+    setEditingBot(bot);
+    setIsModalOpen(true);
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingBot(null);
+  }
+  
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this chatbot?")) {
+      deleteChatbot(id);
+    }
+  }
 
   return (
     <div className="p-8 space-y-8 animate-fadeIn">
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-bold text-white">Chatbots</h1>
-        <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">
+        <button onClick={openCreateModal} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">
           Create New Chatbot
         </button>
       </div>
@@ -153,14 +201,16 @@ export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ chatbots, knowledgeB
             <div className="mt-4 pt-4 border-t border-gray-700 flex space-x-2">
               <button onClick={() => setActiveChatbot(bot)} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors">Test</button>
               <button onClick={() => setEmbedBot(bot)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 rounded text-sm transition-colors">Embed</button>
+              <button onClick={() => openEditModal(bot)} className="px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">Edit</button>
+              <button onClick={() => handleDelete(bot.id)} className="px-3 py-2 bg-gray-600 hover:bg-red-500 rounded text-sm transition-colors">Delete</button>
             </div>
           </div>
         ))}
         {chatbots.length === 0 && <p className="text-gray-500 col-span-full text-center py-8">No chatbots yet. Click "Create New Chatbot" to begin.</p>}
       </div>
 
-      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create New Chatbot">
-        <NewChatbotForm onSave={handleSave} onClose={() => setIsCreateModalOpen(false)} knowledgeBases={knowledgeBases} />
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={editingBot ? 'Edit Chatbot' : 'Create New Chatbot'}>
+        <ChatbotForm onSave={handleSave} onClose={closeModal} knowledgeBases={knowledgeBases} initialData={editingBot}/>
       </Modal>
 
       <Modal isOpen={!!activeChatbot} onClose={() => setActiveChatbot(null)} title={`Test: ${activeChatbot?.name}`}>
