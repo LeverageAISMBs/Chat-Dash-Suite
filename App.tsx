@@ -7,6 +7,7 @@ import { KnowledgeBaseView } from './components/KnowledgeBaseView';
 import { ChatbotsView } from './components/ChatbotsView';
 import { VoiceAgentView } from './components/VoiceAgentView';
 import { AssistantPanel } from './components/AssistantPanel';
+import { useLocalStorage } from './hooks/useLocalStorage';
 
 // Mock Data
 const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
@@ -25,9 +26,9 @@ const MOCK_VOICE_AGENTS: VoiceAgent[] = [
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.Dashboard);
-  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>(MOCK_KNOWLEDGE_BASES);
-  const [chatbots, setChatbots] = useState<Chatbot[]>(MOCK_CHATBOTS);
-  const [voiceAgents, setVoiceAgents] = useState<VoiceAgent[]>(MOCK_VOICE_AGENTS);
+  const [knowledgeBases, setKnowledgeBases] = useLocalStorage<KnowledgeBase[]>('gemini-suite-knowledgeBases', MOCK_KNOWLEDGE_BASES);
+  const [chatbots, setChatbots] = useLocalStorage<Chatbot[]>('gemini-suite-chatbots', MOCK_CHATBOTS);
+  const [voiceAgents, setVoiceAgents] = useLocalStorage<VoiceAgent[]>('gemini-suite-voiceAgents', MOCK_VOICE_AGENTS);
   
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
