@@ -97,7 +97,7 @@ export const useLiveAgent = () => {
     setAgentTranscript('');
   }, []);
 
-  const startAgent = useCallback(async (systemInstruction: string, voice: Voice) => {
+  const startAgent = useCallback(async (systemInstruction: string, voice: Voice, knowledgeContext: string | null) => {
     if (status !== 'idle') return;
 
     setStatus('connecting');
@@ -112,6 +112,10 @@ export const useLiveAgent = () => {
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
 
+      const finalSystemInstruction = knowledgeContext
+        ? `CONTEXT:\n${knowledgeContext}\n\nINSTRUCTION:\n${systemInstruction}`
+        : systemInstruction;
+
       sessionPromiseRef.current = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
@@ -121,7 +125,7 @@ export const useLiveAgent = () => {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
           },
-          systemInstruction,
+          systemInstruction: finalSystemInstruction,
         },
         callbacks: {
           onopen: async () => {

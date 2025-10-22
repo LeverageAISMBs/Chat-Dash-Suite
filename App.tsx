@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { View, KnowledgeBase, Chatbot, VoiceAgent } from './types';
 import { SideNav } from './components/SideNav';
@@ -19,7 +20,7 @@ const MOCK_CHATBOTS: Chatbot[] = [
 ];
 
 const MOCK_VOICE_AGENTS: VoiceAgent[] = [
-    { id: 'va1', name: 'Coffee Shop Barista', systemInstruction: 'You are a cheerful barista at a coffee shop.', voice: 'Zephyr', createdAt: new Date().toISOString() }
+    { id: 'va1', name: 'Coffee Shop Barista', systemInstruction: 'You are a cheerful barista at a coffee shop.', voice: 'Zephyr', knowledgeBaseId: null, createdAt: new Date().toISOString() }
 ]
 
 const App: React.FC = () => {
@@ -45,6 +46,7 @@ const App: React.FC = () => {
     setKnowledgeBases(prev => prev.filter(kb => kb.id !== id));
     // When a KB is deleted, update any chatbots using it
     setChatbots(prev => prev.map(bot => bot.knowledgeBaseId === id ? { ...bot, knowledgeBaseId: null } : bot));
+    setVoiceAgents(prev => prev.map(agent => agent.knowledgeBaseId === id ? { ...agent, knowledgeBaseId: null } : agent));
   }
 
   // Chatbot CRUD
@@ -67,6 +69,14 @@ const App: React.FC = () => {
       setVoiceAgents(prev => [...prev, newAgent]);
   }
 
+  const updateVoiceAgent = (updatedAgent: VoiceAgent) => {
+    setVoiceAgents(prev => prev.map(agent => agent.id === updatedAgent.id ? updatedAgent : agent));
+  }
+
+  const deleteVoiceAgent = (id: string) => {
+    setVoiceAgents(prev => prev.filter(agent => agent.id !== id));
+  }
+
   const renderView = () => {
     switch (currentView) {
       case View.Dashboard:
@@ -87,7 +97,13 @@ const App: React.FC = () => {
                   deleteChatbot={deleteChatbot}
                 />;
       case View.VoiceAgents:
-        return <VoiceAgentView voiceAgents={voiceAgents} addVoiceAgent={addVoiceAgent} />;
+        return <VoiceAgentView 
+                  voiceAgents={voiceAgents} 
+                  addVoiceAgent={addVoiceAgent}
+                  knowledgeBases={knowledgeBases}
+                  updateVoiceAgent={updateVoiceAgent}
+                  deleteVoiceAgent={deleteVoiceAgent}
+                />;
       default:
         return <DashboardView chatbots={chatbots} knowledgeBases={knowledgeBases} voiceAgents={voiceAgents} setCurrentView={setCurrentView} />;
     }

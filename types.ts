@@ -23,7 +23,7 @@ export type KnowledgeBase = {
 };
 
 export type Chatbot = {
-  id: string;
+  id:string;
   name: string;
   systemPrompt: string;
   knowledgeBaseId: string | null;
@@ -37,6 +37,7 @@ export type VoiceAgent = {
   name: string;
   systemInstruction: string;
   voice: 'Zephyr' | 'Puck' | 'Charon' | 'Kore' | 'Fenrir';
+  knowledgeBaseId: string | null;
   createdAt: string;
 };
 
