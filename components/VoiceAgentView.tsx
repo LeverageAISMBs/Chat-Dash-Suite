@@ -105,10 +105,32 @@ const AgentInterface: React.FC<{ agent: VoiceAgent, knowledgeBases: KnowledgeBas
     )
 }
 
+const EmbedCodeModal: React.FC<{ agent: VoiceAgent, onClose: () => void }> = ({ agent, onClose }) => {
+    const embedCode = `<script>
+    window.geminiVoiceAgentConfig = {
+        agentId: "${agent.id}"
+    };
+</script>
+<script src="https://your-domain.com/voice-agent-loader.js" async defer></script>`;
+
+    return (
+        <div className="space-y-4">
+            <p className="text-gray-300">Copy this snippet and paste it into the \`<body>\` of your website. It will create a chat bubble with the text "Ask if you have any questions, I can speak".</p>
+            <pre className="bg-gray-900 p-4 rounded-lg text-green-300 text-sm overflow-x-auto">
+                <code>{embedCode}</code>
+            </pre>
+            <div className="flex justify-end">
+                <button onClick={() => { navigator.clipboard.writeText(embedCode); onClose(); }} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white transition-colors">Copy & Close</button>
+            </div>
+        </div>
+    )
+}
+
 export const VoiceAgentView: React.FC<VoiceAgentViewProps> = ({ voiceAgents, knowledgeBases, addVoiceAgent, updateVoiceAgent, deleteVoiceAgent }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<VoiceAgent | null>(null);
   const [activeAgent, setActiveAgent] = useState<VoiceAgent | null>(null);
+  const [embedAgent, setEmbedAgent] = useState<VoiceAgent | null>(null);
   
   const handleSave = (data: Omit<VoiceAgent, 'id' | 'createdAt'>) => {
     if (editingAgent) {
@@ -159,6 +181,7 @@ export const VoiceAgentView: React.FC<VoiceAgentViewProps> = ({ voiceAgents, kno
             </div>
             <div className="mt-4 pt-4 border-t border-gray-700 flex space-x-2">
               <button onClick={() => setActiveAgent(agent)} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm transition-colors">Launch</button>
+              <button onClick={() => setEmbedAgent(agent)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 rounded text-sm transition-colors">Embed</button>
               <button onClick={() => openEditModal(agent)} className="px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">Edit</button>
               <button onClick={() => handleDelete(agent.id)} className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm transition-colors">Delete</button>
             </div>
@@ -173,6 +196,10 @@ export const VoiceAgentView: React.FC<VoiceAgentViewProps> = ({ voiceAgents, kno
 
       <Modal isOpen={!!activeAgent} onClose={() => setActiveAgent(null)} title={`Voice Agent: ${activeAgent?.name}`}>
         {activeAgent && <AgentInterface agent={activeAgent} knowledgeBases={knowledgeBases} />}
+      </Modal>
+
+      <Modal isOpen={!!embedAgent} onClose={() => setEmbedAgent(null)} title={`Embed Code for ${embedAgent?.name}`}>
+        {embedAgent && <EmbedCodeModal agent={embedAgent} onClose={() => setEmbedAgent(null)} />}
       </Modal>
 
     </div>
