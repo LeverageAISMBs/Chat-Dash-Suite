@@ -4,6 +4,7 @@ export enum View {
   KnowledgeBases = 'KNOWLEDGE_BASES',
   Chatbots = 'CHATBOTS',
   VoiceAgents = 'VOICE_AGENTS',
+  DeploymentGuide = 'DEPLOYMENT_GUIDE',
 }
 
 export type KnowledgeSource = {

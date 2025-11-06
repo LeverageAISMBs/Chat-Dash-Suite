@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { VoiceAgent, KnowledgeBase } from '../types';
-import { useLiveAgent } from '../hooks/useLiveAgent';
 import { Modal } from './Modal';
+import { AgentInterface } from './AgentInterface';
 
 interface VoiceAgentViewProps {
   voiceAgents: VoiceAgent[];
@@ -70,52 +70,20 @@ const AgentForm: React.FC<{
   );
 };
 
-const AgentInterface: React.FC<{ agent: VoiceAgent, knowledgeBases: KnowledgeBase[] }> = ({ agent, knowledgeBases }) => {
-    const { status, startAgent, stopAgent, userTranscript, agentTranscript, fullTranscript } = useLiveAgent();
-
-    const knowledgeBase = knowledgeBases.find(kb => kb.id === agent.knowledgeBaseId);
-    const knowledgeContext = knowledgeBase ? knowledgeBase.sources.map(s => s.content).join('\n\n') : null;
-
-    const getStatusIndicator = () => {
-        switch (status) {
-            case 'connecting': return <div className="text-yellow-400">Connecting...</div>;
-            case 'listening': return <div className="text-green-400 flex items-center space-x-2"><span>Listening</span> <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div></div>;
-            case 'speaking': return <div className="text-blue-400 flex items-center space-x-2"><span>Speaking</span> <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div></div>;
-            case 'error': return <div className="text-red-500">Error! Please restart.</div>;
-            default: return <div className="text-gray-400">Idle</div>;
-        }
-    }
-
-    return (
-        <div className="space-y-4 text-white">
-            <div className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
-                <div className="font-semibold">{getStatusIndicator()}</div>
-                {status === 'idle' || status === 'error' ? (
-                    <button onClick={() => startAgent(agent.systemInstruction, agent.voice, knowledgeContext)} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white transition-colors">Start Conversation</button>
-                ) : (
-                    <button onClick={stopAgent} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white transition-colors">End Conversation</button>
-                )}
-            </div>
-            <div className="bg-gray-900/50 p-4 rounded-lg h-80 overflow-y-auto border border-gray-700">
-                {fullTranscript.map((line, index) => <p key={index} className={line.startsWith('You:') ? 'text-gray-300' : 'text-blue-300'}>{line}</p>)}
-                {userTranscript && <p className="text-gray-400 italic">You: {userTranscript}...</p>}
-                {agentTranscript && <p className="text-blue-400 italic">Agent: {agentTranscript}...</p>}
-            </div>
-        </div>
-    )
-}
-
 const EmbedCodeModal: React.FC<{ agent: VoiceAgent, onClose: () => void }> = ({ agent, onClose }) => {
     const embedCode = `<script>
     window.geminiVoiceAgentConfig = {
-        agentId: "${agent.id}"
+        agentId: "${agent.id}",
+        // Optional: If hosting the suite on a different domain, specify it here.
+        // domain: "https://your-suite-domain.com"
     };
 </script>
-<script src="https://your-domain.com/voice-agent-loader.js" async defer></script>`;
+<script src="/voice-agent-loader.js" async defer></script>`;
 
     return (
         <div className="space-y-4">
-            <p className="text-gray-300">Copy this snippet and paste it into the \`<body>\` of your website. It will create a chat bubble with the text "Ask if you have any questions, I can speak".</p>
+            <p className="text-gray-300">Copy this snippet and paste it just before the closing `&lt;/body&gt;` tag of your website.</p>
+            <p className="text-sm text-gray-400">Note: The script `src` path is relative. For production, you must replace `/voice-agent-loader.js` with the full URL to the loader script hosted on your Gemini Suite domain.</p>
             <pre className="bg-gray-900 p-4 rounded-lg text-green-300 text-sm overflow-x-auto">
                 <code>{embedCode}</code>
             </pre>

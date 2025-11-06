@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Chatbot, KnowledgeBase, ChatMessage } from '../types';
+
+import React, { useState } from 'react';
+import { Chatbot, KnowledgeBase } from '../types';
 import { Modal } from './Modal';
-import { getResponse } from '../services/geminiService';
-import { Spinner } from './Spinner';
+import { ChatInterface } from './ChatInterface';
 
 interface ChatbotsViewProps {
   chatbots: Chatbot[];
@@ -10,6 +10,7 @@ interface ChatbotsViewProps {
   addChatbot: (bot: Omit<Chatbot, 'id' | 'createdAt' | 'usage'>) => void;
   updateChatbot: (bot: Chatbot) => void;
   deleteChatbot: (id: string) => void;
+  incrementChatbotUsage: (id: string) => void;
 }
 
 const ChatbotForm: React.FC<{ 
@@ -24,7 +25,7 @@ const ChatbotForm: React.FC<{
   const [useThinkingMode, setUseThinkingMode] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (initialData) {
       setName(initialData.name);
       setSystemPrompt(initialData.systemPrompt);
@@ -69,72 +70,20 @@ const ChatbotForm: React.FC<{
   );
 };
 
-const ChatInterface: React.FC<{ bot: Chatbot, knowledgeBases: KnowledgeBase[] }> = ({ bot, knowledgeBases }) => {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const messagesEndRef = React.useRef<HTMLDivElement>(null);
-    const knowledgeBase = knowledgeBases.find(kb => kb.id === bot.knowledgeBaseId);
-    const knowledgeContext = knowledgeBase ? knowledgeBase.sources.map(s => s.content).join('\n\n') : null;
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    React.useEffect(scrollToBottom, [messages]);
-    
-    const handleSend = async () => {
-        if (input.trim() === '' || isLoading) return;
-        const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text: input };
-        setMessages(prev => [...prev, userMessage]);
-        setInput('');
-        setIsLoading(true);
-
-        const responseText = await getResponse(input, messages, bot.systemPrompt, knowledgeContext, bot.useThinkingMode);
-        
-        const modelMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: responseText };
-        setMessages(prev => [...prev, modelMessage]);
-        setIsLoading(false);
-    };
-
-    return (
-        <div className="flex flex-col h-[60vh] bg-gray-700 rounded-lg">
-            <div className="flex-grow p-4 overflow-y-auto">
-                <div className="space-y-4">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-md px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-600' : 'bg-gray-600'}`}>
-                                <p className="whitespace-pre-wrap">{msg.text}</p>
-                            </div>
-                        </div>
-                    ))}
-                    {isLoading && <div className="flex justify-start"><div className="bg-gray-600 p-3 rounded-lg"><Spinner size="sm" /></div></div>}
-                    <div ref={messagesEndRef} />
-                </div>
-            </div>
-            <div className="p-4 border-t border-gray-600">
-                <div className="flex items-center bg-gray-800 rounded-lg">
-                    <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Chat with your bot..." className="w-full bg-transparent p-3 focus:outline-none" disabled={isLoading}/>
-                    <button onClick={handleSend} disabled={isLoading} className="p-3 text-blue-400 hover:text-blue-300 disabled:text-gray-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const EmbedCodeModal: React.FC<{ bot: Chatbot, onClose: () => void }> = ({ bot, onClose }) => {
     const embedCode = `<script>
     window.geminiChatbotConfig = {
-        botId: "${bot.id}"
+        botId: "${bot.id}",
+        // Optional: If hosting the suite on a different domain, specify it here.
+        // domain: "https://your-suite-domain.com" 
     };
 </script>
-<script src="https://your-domain.com/chatbot-loader.js" async defer></script>`;
+<script src="/chatbot-loader.js" async defer></script>`;
 
     return (
         <div className="space-y-4">
-            <p className="text-gray-300">Copy this snippet and paste it into the \`<body>\` of your website to embed this chatbot.</p>
+            <p className="text-gray-300">Copy this snippet and paste it just before the closing `&lt;/body&gt;` tag of your website.</p>
+            <p className="text-sm text-gray-400">Note: The script `src` path is relative. For production, you must replace `/chatbot-loader.js` with the full URL to the loader script hosted on your Gemini Suite domain.</p>
             <pre className="bg-gray-900 p-4 rounded-lg text-green-300 text-sm overflow-x-auto">
                 <code>{embedCode}</code>
             </pre>
@@ -145,7 +94,7 @@ const EmbedCodeModal: React.FC<{ bot: Chatbot, onClose: () => void }> = ({ bot, 
     )
 }
 
-export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ chatbots, knowledgeBases, addChatbot, updateChatbot, deleteChatbot }) => {
+export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ chatbots, knowledgeBases, addChatbot, updateChatbot, deleteChatbot, incrementChatbotUsage }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<Chatbot | null>(null);
   const [activeChatbot, setActiveChatbot] = useState<Chatbot | null>(null);
@@ -202,7 +151,7 @@ export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ chatbots, knowledgeB
               <button onClick={() => setActiveChatbot(bot)} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors">Test</button>
               <button onClick={() => setEmbedBot(bot)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 rounded text-sm transition-colors">Embed</button>
               <button onClick={() => openEditModal(bot)} className="px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors">Edit</button>
-              <button onClick={() => handleDelete(bot.id)} className="px-3 py-2 bg-gray-600 hover:bg-red-500 rounded text-sm transition-colors">Delete</button>
+              <button onClick={() => handleDelete(bot.id)} className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm transition-colors">Delete</button>
             </div>
           </div>
         ))}
@@ -214,7 +163,7 @@ export const ChatbotsView: React.FC<ChatbotsViewProps> = ({ chatbots, knowledgeB
       </Modal>
 
       <Modal isOpen={!!activeChatbot} onClose={() => setActiveChatbot(null)} title={`Test: ${activeChatbot?.name}`}>
-        {activeChatbot && <ChatInterface bot={activeChatbot} knowledgeBases={knowledgeBases} />}
+        {activeChatbot && <ChatInterface bot={activeChatbot} knowledgeBases={knowledgeBases} onInteraction={() => incrementChatbotUsage(activeChatbot.id)} />}
       </Modal>
       
       <Modal isOpen={!!embedBot} onClose={() => setEmbedBot(null)} title={`Embed Code for ${embedBot?.name}`}>

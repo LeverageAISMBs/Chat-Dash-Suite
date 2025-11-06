@@ -8,6 +8,9 @@ import { ChatbotsView } from './components/ChatbotsView';
 import { VoiceAgentView } from './components/VoiceAgentView';
 import { AssistantPanel } from './components/AssistantPanel';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { ChatbotPublicPage } from './components/ChatbotPublicPage';
+import { VoiceAgentPublicPage } from './components/VoiceAgentPublicPage';
+import { DeploymentGuideView } from './components/DeploymentGuideView';
 
 // Mock Data
 const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
@@ -32,6 +35,15 @@ const App: React.FC = () => {
   
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+
+  // Router for public-facing pages
+  const url = new URL(window.location.href);
+  if (url.pathname === '/chatbot') {
+      return <ChatbotPublicPage />;
+  }
+  if (url.pathname === '/voice-agent') {
+      return <VoiceAgentPublicPage />;
+  }
 
   // Knowledge Base CRUD
   const addKnowledgeBase = (kb: Omit<KnowledgeBase, 'id' | 'createdAt'>) => {
@@ -62,6 +74,10 @@ const App: React.FC = () => {
   
   const deleteChatbot = (id: string) => {
     setChatbots(prev => prev.filter(bot => bot.id !== id));
+  }
+  
+  const incrementChatbotUsage = (id: string) => {
+    setChatbots(prev => prev.map(bot => bot.id === id ? { ...bot, usage: bot.usage + 1 } : bot));
   }
 
   // Voice Agent CRUD
@@ -96,6 +112,7 @@ const App: React.FC = () => {
                   addChatbot={addChatbot}
                   updateChatbot={updateChatbot}
                   deleteChatbot={deleteChatbot}
+                  incrementChatbotUsage={incrementChatbotUsage}
                 />;
       case View.VoiceAgents:
         return <VoiceAgentView 
@@ -105,6 +122,8 @@ const App: React.FC = () => {
                   updateVoiceAgent={updateVoiceAgent}
                   deleteVoiceAgent={deleteVoiceAgent}
                 />;
+      case View.DeploymentGuide:
+        return <DeploymentGuideView />;
       default:
         return <DashboardView chatbots={chatbots} knowledgeBases={knowledgeBases} voiceAgents={voiceAgents} setCurrentView={setCurrentView} />;
     }
